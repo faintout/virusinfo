@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>实时疫情地图————for YHN</title>
+    <style>
+        #app {
+
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+        }
+    .title,.item{
+        display:flex;
+    }
+    .title{
+        border-bottom: 1px solid #ccc;
+    }
+    .item span {
+        flex: 1;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+      }
+    .title span{
+        /* 表示每个span是一份 */
+        flex:1;
+        text-align: center;
+        height: 50px;
+        line-height: 50px;
+        font-weight: bold;
+    }
+    .item span{
+        flex:1;
+    }
+    .title span:nth-child(1), .item span:nth-child(1){
+        background-color: #e3e7f3;
+    }
+    .title span:nth-child(2), .item span:nth-child(2){
+        background-color: #f3bab0;
+    }
+    .title span:nth-child(3), .item span:nth-child(3){
+        background-color: #b4c0e5;
+    }
+    .title span:nth-child(4), .item span:nth-child(4){
+        background-color: #6c9;
+    }
+    .copyright{
+        font-size: 12px;
+        color: #999;
+        margin-top: 20px;
+        text-align: center;
+    }
+    </style>
+</head>
+<script src="./jsonp.js"></script>
+<script src="./moment.js"></script>
+
+<body>
+    <!-- app用来显示eharts -->
+    <div id="app"></div>
+    <!-- 放置详情数据 -->
+    <div class="title">
+        <span>地区</span>
+        <span>确认</span>
+        <span>死亡</span>
+        <span>治愈</span>
+    </div>
+    <!-- 感染总人数 -->
+    <div id="total"></div>
+    <!-- 放置省份数据详情 -->
+    <div id="info"></div>
+    <!-- 引入插件 -->
+    <!-- 版权信息 -->
+    <div class="copyright">Copyright ©2020 YHN 疫情地图 All Rights Reserved. </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/echarts@4.6.0/dist/echarts.min.js"></script>
+    <!-- echarts没有地图图表 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@4.6.0/map/js/china.min.js"></script>
+
+    <!-- 实时疫情数据 -->
+    <script>
+        var mychart = echarts.init(document.getElementById('app'))
+
+        var option = {
+            title: {
+                text: '众志成城 共康疫情',  //图表标题
+                subtext: moment().format('YYYY-MM-DD hh:mm:ss') + '     每10秒更新一次',
+                left: 'center'
+            },
+            //用于地图中省份颜色显示
+            visualMap: {
+                min: 0,
+                //max 上限 //超过上限颜色越深
+                max: 500,
+                left: 'left',
+                top: 'bottom',
+                text: ['高', '低'],           // 文本，默认为数值文本
+                calculable: true
+            },
+            series: [{
+                name: '中国疫情图',
+                type: 'map',
+                //地图类型
+                mapType: 'china',
+                label: {
+                    normal: {
+                        show: true
+                    },
+                    emphasis: {
+                        show: true
+                    }
+                },
+                data: []
+            }]
+        };
+        mychart.setOption(option)
+        getListData()
+        //获取数据函数
+        function getListData() {
+            var url = 'https://view.inews.qq.com/g2/getOnsInfo?name=disease_h5'
+            //请求成功调用回调函数
+            jsonp(url, (error, result) => {
+                if (error) return; //如果错误存在，说明请求失败，
+                //如果不存在，继续
+                var allData = JSON.parse(result.data)
+                var chinaDate = allData.areaTree[0]
+                var provinceDate = chinaDate.children.map(item => {
+                    return { name: item.name, value: item.total.confirm }
+                })
+                option.series[0].data = provinceDate
+                //图表根据数据进行刷新
+                //更新最新时间和图标
+                option.title.subtext = moment().format('YYYY-MM-DD hh:mm:ss') + '     每10秒更新一次',
+                mychart.setOption(option)
+
+                //循环数据
+                var arr = chinaDate.children.map(item=>{
+                    return `<div class='item'>
+                    <span>${item.name}</span>
+                    <span>${item.total.confirm}</span>
+                    <span>${item.total.dead}</span>
+                    <span>${item.total.heal}</span>
+                    </div>`
+                    })
+                    //省份数据显示到页面上
+                    document.getElementById('info').innerHTML = arr.join("")
+                    document.getElementById('total').innerHTML =
+                    `
+                    <div class='title'>
+                    <span>总数</span>
+                    <span>${chinaDate.total.confirm}</span>
+                    <span>${chinaDate.total.dead}</span>
+                    <span>${chinaDate.total.heal}</span>
+                    </div>
+                    `
+                    
+            })
+        }
+
+    </script>
+
+
+
+
+</body>
+
+</html>
